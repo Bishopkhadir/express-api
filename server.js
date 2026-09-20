@@ -1,21 +1,22 @@
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
-// 1. Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/todoapp')
+// Connect to MongoDB (uses Railway's environment variable in production)
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/todoapp')
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
-// 2. Define a Todo model
+// Todo model
 const Todo = mongoose.model('Todo', {
   text: String,
   done: Boolean
 });
 
-// 3. Routes
 // GET all todos
 app.get('/todos', async (req, res) => {
   const todos = await Todo.find();
@@ -46,6 +47,8 @@ app.delete('/todos/:id', async (req, res) => {
   res.json({ message: 'Deleted' });
 });
 
-app.listen(3000, () => {
-  console.log('✅ API running at http://localhost:3000');
+// Dynamic port for Railway
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ API running at http://localhost:${PORT}`);
 });
