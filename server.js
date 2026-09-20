@@ -1,49 +1,48 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const app = express();
 
 app.use(express.json());
 
-// In-memory "database" (a simple array)
-let todos = [
-  { id: 1, text: 'Learn Express', done: false },
-  { id: 2, text: 'Build an API', done: false }
-];
+// 1. Connect to MongoDB
+mongoose.connect('mongodb://localhost:27017/todoapp')
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
+// 2. Define a Todo model
+const Todo = mongoose.model('Todo', {
+  text: String,
+  done: Boolean
+});
+
+// 3. Routes
 // GET all todos
-app.get('/todos', (req, res) => {
+app.get('/todos', async (req, res) => {
+  const todos = await Todo.find();
   res.json(todos);
 });
 
-// GET one todo
-app.get('/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === Number(req.params.id));
-  if (!todo) return res.status(404).json({ error: 'Todo not found' });
-  res.json(todo);
-});
-
-// POST create new todo
-app.post('/todos', (req, res) => {
-  const newTodo = {
-    id: todos.length + 1,
-    text: req.body.text,
-    done: false
-  };
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
+// POST create todo
+app.post('/todos', async (req, res) => {
+  const todo = new Todo({ text: req.body.text, done: false });
+  await todo.save();
+  res.status(201).json(todo);
 });
 
 // PUT update todo
-app.put('/todos/:id', (req, res) => {
-  const todo = todos.find(t => t.id === Number(req.params.id));
+app.put('/todos/:id', async (req, res) => {
+  const todo = await Todo.findByIdAndUpdate(
+    req.params.id,
+    { text: req.body.text, done: req.body.done },
+    { new: true }
+  );
   if (!todo) return res.status(404).json({ error: 'Todo not found' });
-  todo.text = req.body.text ?? todo.text;
-  todo.done = req.body.done ?? todo.done;
   res.json(todo);
 });
 
 // DELETE todo
-app.delete('/todos/:id', (req, res) => {
-  todos = todos.filter(t => t.id !== Number(req.params.id));
+app.delete('/todos/:id', async (req, res) => {
+  await Todo.findByIdAndDelete(req.params.id);
   res.json({ message: 'Deleted' });
 });
 
