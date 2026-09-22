@@ -23,7 +23,9 @@ const User = mongoose.model('User', {
 const Todo = mongoose.model('Todo', {
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   text: String,
-  done: Boolean
+  done: Boolean,
+  dueDate: { type: String, default: '' },
+  priority: { type: String, default: 'medium' }
 });
 
 // ===== AUTH ROUTES =====
@@ -85,7 +87,13 @@ app.get('/todos', auth, async (req, res) => {
 });
 
 app.post('/todos', auth, async (req, res) => {
-  const todo = new Todo({ userId: req.userId, text: req.body.text, done: false });
+  const todo = new Todo({
+    userId: req.userId,
+    text: req.body.text,
+    dueDate: req.body.dueDate || '',
+    priority: req.body.priority || 'medium',
+    done: false
+  });
   await todo.save();
   res.status(201).json(todo);
 });
@@ -93,7 +101,12 @@ app.post('/todos', auth, async (req, res) => {
 app.put('/todos/:id', auth, async (req, res) => {
   const todo = await Todo.findOneAndUpdate(
     { _id: req.params.id, userId: req.userId },
-    { text: req.body.text, done: req.body.done },
+    {
+      text: req.body.text,
+      done: req.body.done,
+      dueDate: req.body.dueDate,
+      priority: req.body.priority
+    },
     { new: true }
   );
   if (!todo) return res.status(404).json({ error: 'Todo not found' });
