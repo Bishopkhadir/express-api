@@ -25,7 +25,8 @@ const Todo = mongoose.model('Todo', {
   text: String,
   done: Boolean,
   dueDate: { type: String, default: '' },
-  priority: { type: String, default: 'medium' }
+  priority: { type: String, default: 'medium' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 // ===== AUTH ROUTES =====
@@ -82,7 +83,15 @@ function auth(req, res, next) {
 // ===== PROTECTED TODO ROUTES =====
 
 app.get('/todos', auth, async (req, res) => {
-  const todos = await Todo.find({ userId: req.userId });
+  const query = { userId: req.userId };
+  if (req.query.search) {
+    query.text = { $regex: req.query.search, $options: 'i' };
+  }
+  if (req.query.filter === 'active') query.done = false;
+  if (req.query.filter === 'completed') query.done = true;
+  if (req.query.priority) query.priority = req.query.priority;
+
+  const todos = await Todo.find(query).sort({ createdAt: -1 });
   res.json(todos);
 });
 
